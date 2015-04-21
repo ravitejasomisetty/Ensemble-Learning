@@ -1,10 +1,8 @@
 package ensemblelearning;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,14 +19,18 @@ import weka.filters.unsupervised.attribute.ReplaceMissingValues;
  */
 class PreProcessor {
 
-    private final String trainingFile, outputFile;
+    private final String file;
+    private Instances data = null;
 
-    public PreProcessor(String trainingFile, String outputFile) {
-        this.trainingFile = trainingFile;
-        this.outputFile = outputFile;
+    public Instances getData() {
+        return data;
     }
 
-    protected final Instances readInput() throws FileNotFoundException, IOException {
+    public PreProcessor(String file) {
+        this.file = file;
+    }
+
+    protected final void readInput() throws FileNotFoundException, IOException {
         //set attributes
         FastVector attributes = new FastVector();
         //defining each attribute
@@ -170,14 +172,13 @@ class PreProcessor {
         attributes.addElement(new Attribute("income", incomeValues));
         Instances data = new Instances(new String("Data"), attributes, 0);
         data.setClassIndex(data.numAttributes() - 1);
-        BufferedReader br = new BufferedReader(new FileReader(this.trainingFile));
+        BufferedReader br = new BufferedReader(new FileReader(this.file));
         String line;
         String[] tokens;
         while ((line = br.readLine()) != null) {
-        	tokens = line.split(",");
+            tokens = line.split(",");
             double[] values = new double[tokens.length];
-            
-            
+
             for (int i = 0; i < tokens.length; i++) {
                 try {
 //                    if (tokens[i].startsWith("\"")) {
@@ -185,7 +186,7 @@ class PreProcessor {
 //                    } else if (tokens[i].endsWith("\"")) {
 //                        tokens[i] = tokens[i].substring(0, tokens[i].length() - 1);
 //                    }
-            
+
                     values[i] = Double.parseDouble(tokens[i].trim());
                 } catch (NumberFormatException e) {
                     switch (i) {
@@ -249,22 +250,16 @@ class PreProcessor {
             data.add(new Instance(1.0, values));
         }
         br.close();
-        return data;
+        this.data = data;
     }
 
-    protected final void writeOutput(Instances data) throws IOException {
-        BufferedWriter bw = new BufferedWriter(new FileWriter(this.outputFile));
-        bw.write(data.toString());
-        bw.close();
-    }
-
-    protected final void run() {
+    protected final Instances run() {
         Instances newData = null;
         try {
-            Instances data = this.readInput();
+            this.readInput();
             ReplaceMissingValues filter = new ReplaceMissingValues();
-            filter.setInputFormat(data);
-            newData = Filter.useFilter(data, filter);
+            filter.setInputFormat(this.data);
+            newData = Filter.useFilter(this.data, filter);
         } catch (FileNotFoundException ex) {
             System.out.println("Input file not found. Program terminated");
             System.exit(0);
@@ -274,12 +269,7 @@ class PreProcessor {
         } catch (Exception ex) {
             Logger.getLogger(PreProcessor.class.getName()).log(Level.SEVERE, null, ex);
         }
-        try {
-            this.writeOutput(newData);
-        } catch (IOException ex) {
-            System.out.println("Output file corrupted. Program terminated");
-            System.exit(0);
-        }
+        return newData;
     }
 
 }
